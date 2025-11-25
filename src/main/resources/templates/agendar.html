@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>UC01 — Agendar horário</title>
+  <title>Agendar horário • Cortadora Laser — FAU</title>
 
   <style>
     :root{
@@ -59,9 +59,15 @@
     </header>
 
     <div class="grid">
-      <!-- Formulário -->
+      
       <section class="card">
         <h1>UC01 — Agendar horário</h1>
+       
+        <p class="muted"
+           th:text="'Logado como ' + ${alunoNome} + ' (' + ${alunoSemestre} + 'º semestre, ' + ${alunoTipo} + ')'">
+          Logado como ...
+        </p>
+
         <p class="muted">Selecione o intervalo e a máquina. O sistema valida conflito e prioridade automaticamente.</p>
 
         <form id="form-agendar">
@@ -98,7 +104,7 @@
         </div>
       </section>
 
-      <!-- Preview -->
+      
       <aside class="card">
         <h1>Minhas reservas (resumo)</h1>
         <p class="muted">Apenas para referência rápida.</p>
@@ -109,80 +115,88 @@
     </div>
   </div>
 
-  <!-- Impede o Thymeleaf de processar ${...} dentro do JS -->
-  <script th:inline="none">
-    const ALUNO_ID = 1;
-
-    const form = document.getElementById('form-agendar');
-    const btn  = document.getElementById('btn');
-    const msg  = document.getElementById('msg');
-    const preview = document.getElementById('preview');
-
-    function show(el, text, kind='info'){
-      el.className = 'msg ' + kind;
-      el.textContent = text;
-      el.style.display = 'block';
-    }
-
-    function toIsoLocal(dtLocalValue){
-      return dtLocalValue ? dtLocalValue + ':00' : '';
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const inicio = document.getElementById('inicio').value;
-      const fim = document.getElementById('fim').value;
-      const equipamento = document.getElementById('equipamento').value;
-
-      if (!inicio || !fim){ show(msg,'Preencha início e fim.','err'); return; }
-      if (new Date(inicio) >= new Date(fim)){ show(msg,'O fim deve ser depois do início.','err'); return; }
-
-      const payload = { alunoId: ALUNO_ID, inicio: toIsoLocal(inicio), fim: toIsoLocal(fim), equipamento };
-
-      btn.disabled = true;
-      show(msg,'Enviando…','info');
-
-      try{
-        const res = await fetch('/api/agendamentos', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        });
-
-        if (!res.ok){
-          const text = await res.text();
-          throw new Error(text || 'Falha ao agendar.');
-        }
-
-        const reserva = await res.json();
-        show(msg, 'Agendamento criado com sucesso!', 'ok');
-
-        // OBS: usamos \${...} para não confundir editores; o th:inline="none" já impede o Thymeleaf
-        preview.innerHTML = `
-          <table>
-            <thead>
-              <tr><th>ID</th><th>Equipamento</th><th>Início</th><th>Fim</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>\${reserva.id ?? '-'}</td>
-                <td>\${reserva.equipamento}</td>
-                <td>\${reserva.inicio}</td>
-                <td>\${reserva.fim}</td>
-                <td class="status">\${reserva.status ?? 'ATIVA'}</td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-        form.reset();
-
-      }catch(err){
-        show(msg, err?.message || 'Erro inesperado ao agendar.', 'err');
-      }finally{
-        btn.disabled = false;
-      }
-    });
+  
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    const ALUNO_ID = /*[[${alunoId}]]*/ 0;
+    /*]]>*/
   </script>
+
+  
+  <script th:inline="none">
+  const form = document.getElementById('form-agendar');
+  const btn  = document.getElementById('btn');
+  const msg  = document.getElementById('msg');
+  const preview = document.getElementById('preview');
+
+  function show(el, text, kind='info'){
+    el.className = 'msg ' + kind;
+    el.textContent = text;
+    el.style.display = 'block';
+  }
+
+  function toIsoLocal(dtLocalValue){
+    return dtLocalValue ? dtLocalValue + ':00' : '';
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const inicio = document.getElementById('inicio').value;
+    const fim = document.getElementById('fim').value;
+    const equipamento = document.getElementById('equipamento').value;
+
+    if (!inicio || !fim){ show(msg,'Preencha início e fim.','err'); return; }
+    if (new Date(inicio) >= new Date(fim)){ show(msg,'O fim deve ser depois do início.','err'); return; }
+
+    const payload = { alunoId: ALUNO_ID, inicio: toIsoLocal(inicio), fim: toIsoLocal(fim), equipamento };
+
+    btn.disabled = true;
+    show(msg,'Enviando…','info');
+
+    try{
+      const res = await fetch('/api/agendamentos', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok){
+        const text = await res.text();
+        throw new Error(text || 'Falha ao agendar.');
+      }
+
+      const reserva = await res.json();
+      show(msg, 'Agendamento criado com sucesso!', 'ok');
+
+      // AGORA SEM A BARRA: ${...} vira template string de JS
+      preview.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Equipamento</th><th>Início</th><th>Fim</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${reserva.id ?? '-'}</td>
+              <td>${reserva.equipamento}</td>
+              <td>${reserva.inicio}</td>
+              <td>${reserva.fim}</td>
+              <td class="status">${reserva.status ?? 'ATIVA'}</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+      form.reset();
+
+    }catch(err){
+      show(msg, err?.message || 'Erro inesperado ao agendar.', 'err');
+    }finally{
+      btn.disabled = false;
+    }
+  });
+</script>
+
 </body>
 </html>

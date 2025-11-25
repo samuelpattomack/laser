@@ -11,28 +11,28 @@ public class Reserva {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Aluno que fez a reserva
+   
     @ManyToOne(optional = false)
     @JoinColumn(name = "aluno_titular_id")
     private Aluno titular;
 
-    // Suplente pode ser null
+    
     @ManyToOne
     @JoinColumn(name = "aluno_suplente_id")
     private Aluno suplente;
 
-    // Horário reservado
+    
     private LocalDateTime inicio;
     private LocalDateTime fim;
 
-    // Qual máquina (ex.: "cortadora 1")
+    
     private String equipamento;
 
-    // Status atual da reserva
+    
     @Enumerated(EnumType.STRING)
     private Status status;
 
-    // Auditoria
+    
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
 
@@ -56,9 +56,7 @@ public class Reserva {
         this.atualizadoEm = LocalDateTime.now();
     }
 
-    // =========================
-    // Getters e Setters
-    // =========================
+    
 
     public Long getId() {
         return id;

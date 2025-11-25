@@ -22,10 +22,10 @@ public class Aluno {
     @NotBlank
     private String senhaHash;
 
-    // semestre do aluno (3,4,5,6,7,8,...)
+   
     private Integer semestre;
 
-    // tipo do aluno para as regras de prioridade: TFG ou REGULAR
+    
     @Enumerated(EnumType.STRING)
     private TipoTrabalho tipoTrabalho;
 
@@ -34,9 +34,6 @@ public class Aluno {
         REGULAR
     }
 
-    // =========================
-    // Getters e Setters
-    // =========================
 
     public Long getId() {
         return id;
