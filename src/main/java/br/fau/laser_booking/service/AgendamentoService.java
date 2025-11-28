@@ -21,14 +21,13 @@ public class AgendamentoService {
         this.reservaRepository = reservaRepository;
     }
 
-    // === UC01: Agendar horário ============================================
+    
     @Transactional
     public Reserva agendarHorario(Aluno aluno,
                                   LocalDateTime inicio,
                                   LocalDateTime fim,
                                   String equipamento) {
 
-        // 0) validações básicas
         if (aluno == null || aluno.getId() == null) {
             throw new IllegalArgumentException("Aluno inválido.");
         }
@@ -45,7 +44,7 @@ public class AgendamentoService {
             throw new IllegalArgumentException("Não é possível agendar no passado.");
         }
 
-        // 1) Conflito por equipamento + status ATIVA + sobreposição
+        
         boolean conflito = reservaRepository
                 .existsByEquipamentoAndStatusInAndInicioBeforeAndFimAfter(
                         equipamento,
@@ -58,12 +57,11 @@ public class AgendamentoService {
             throw new IllegalStateException("Horário já está reservado para este equipamento.");
         }
 
-        // 2) Regra de permissão (TFG / 3º–8º / <24h)
+        
         if (!podeAgendar(aluno, inicio)) {
             throw new IllegalStateException("Você não tem permissão para agendar esse horário.");
         }
 
-        // 3) Criar e salvar
         Reserva r = new Reserva();
         r.setTitular(aluno);
         r.setEquipamento(equipamento);
@@ -76,7 +74,7 @@ public class AgendamentoService {
         return reservaRepository.save(r);
     }
 
-    // Regras de prioridade
+    
     public boolean podeAgendar(Aluno aluno, LocalDateTime inicioSlot) {
         DayOfWeek dia = inicioSlot.getDayOfWeek();
         boolean ehTFG = aluno.getTipoTrabalho() == Aluno.TipoTrabalho.TFG;
@@ -97,7 +95,6 @@ public class AgendamentoService {
         return diff.toHours() < 24;
     }
 
-    // === UC02: Cancelar ============================================
     @Transactional
     public void cancelarReserva(Aluno aluno, Long reservaId) {
         Reserva r = reservaRepository.findById(reservaId)
@@ -120,7 +117,6 @@ public class AgendamentoService {
         reservaRepository.save(r);
     }
 
-    // === UC03: Incluir Suplente ===================================
     @Transactional
     public void incluirSuplente(Aluno titular, Long reservaId, Aluno suplente) {
         if (suplente == null || suplente.getId() == null) {
@@ -146,14 +142,13 @@ public class AgendamentoService {
         reservaRepository.save(r);
     }
 
-    // === UC05: Editar Horário marcado =============================
     @Transactional
     public Reserva editarHorario(Aluno aluno,
                                  Long reservaId,
                                  LocalDateTime novoInicio,
                                  LocalDateTime novoFim,
                                  String equipamento) {
-        // 0) validações
+
         if (aluno == null || aluno.getId() == null)
             throw new IllegalArgumentException("Aluno inválido.");
         if (equipamento == null || equipamento.isBlank())
@@ -174,14 +169,7 @@ public class AgendamentoService {
         if (r.getStatus() != Reserva.Status.ATIVA)
             throw new IllegalStateException("Apenas reservas ativas podem ser editadas.");
 
-        // se não mudou nada, retorna
-        if (Objects.equals(equipamento, r.getEquipamento()) &&
-            Objects.equals(novoInicio, r.getInicio()) &&
-            Objects.equals(novoFim, r.getFim())) {
-            return r;
-        }
-
-        // conflito ignorando a própria reserva
+        
         boolean conflito = reservaRepository
                 .existsByEquipamentoAndStatusInAndInicioBeforeAndFimAfterAndIdNot(
                         equipamento,
@@ -190,16 +178,15 @@ public class AgendamentoService {
                         novoInicio,
                         r.getId()
                 );
+
         if (conflito) {
             throw new IllegalStateException("Conflito de horário para o equipamento selecionado.");
         }
 
-        // regra de prioridade novamente
         if (!podeAgendar(aluno, novoInicio)) {
             throw new IllegalStateException("Sem permissão neste novo horário.");
         }
 
-        // persistir alterações
         r.setEquipamento(equipamento);
         r.setInicio(novoInicio);
         r.setFim(novoFim);
@@ -207,7 +194,6 @@ public class AgendamentoService {
         return reservaRepository.save(r);
     }
 
-    // Visualizar minhas reservas (UC "Visualizar Horário marcado")
     public List<Reserva> listarReservasDoAluno(Aluno aluno) {
         return reservaRepository.findAllByTitularIdOrderByInicioDesc(aluno.getId());
     }

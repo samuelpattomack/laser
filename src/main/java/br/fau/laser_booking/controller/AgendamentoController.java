@@ -11,7 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/agendamentos")
@@ -33,13 +35,18 @@ public class AgendamentoController {
     @PostMapping
     public ResponseEntity<?> criarAgendamento(@RequestBody AgendamentoRequest req) {
         try {
-            
             Aluno aluno = authService.getAlunoLogado();
 
             Reserva reserva = agendamentoService.agendarHorario(
                     aluno, req.getInicio(), req.getFim(), req.getEquipamento()
             );
-            return ResponseEntity.status(HttpStatus.CREATED).body(reserva);
+
+            Map<String, Object> resposta = new HashMap<>();
+            resposta.put("reserva", reserva);
+            resposta.put("mensagem",
+                    "Agendamento criado com sucesso. Você receberá um e-mail com mais informações.");
+
+            return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -51,29 +58,34 @@ public class AgendamentoController {
         }
     }
 
-    
+
    
-    @GetMapping("/meus/{ignored}")
-    public ResponseEntity<?> listarReservasDoAluno(@PathVariable Long ignored) {
+    @GetMapping("/meus")
+    public ResponseEntity<?> listarReservasDoAluno() {
         try {
             Aluno aluno = authService.getAlunoLogado();
             List<Reserva> reservas = agendamentoService.listarReservasDoAluno(aluno);
             return ResponseEntity.ok(reservas);
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erro ao listar reservas: " + e.getMessage());
         }
     }
 
-    
+
+   
     @PostMapping("/{reservaId}/cancelar")
-    public ResponseEntity<?> cancelarReserva(@PathVariable Long reservaId,
-                                             
-                                             @RequestParam(required = false) Long alunoId) {
+    public ResponseEntity<?> cancelarReserva(@PathVariable Long reservaId) {
         try {
             Aluno aluno = authService.getAlunoLogado();
             agendamentoService.cancelarReserva(aluno, reservaId);
-            return ResponseEntity.ok("Reserva cancelada com sucesso.");
+
+            String msg = "Reserva cancelada com sucesso. " +
+                    "Você receberá um e-mail com mais informações sobre o cancelamento.";
+
+            return ResponseEntity.ok(msg);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IllegalStateException e) {
@@ -84,61 +96,32 @@ public class AgendamentoController {
         }
     }
 
-    
-@PostMapping("/{reservaId}/suplente")
-public ResponseEntity<?> incluirSuplente(@PathVariable Long reservaId,
-                                         @RequestParam String suplenteEmail) {
-    try {
-        
-        Aluno titular = authService.getAlunoLogado();
 
-        
-        Aluno suplente = alunoRepository.findByEmail(suplenteEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Suplente não encontrado."));
-
-        agendamentoService.incluirSuplente(titular, reservaId, suplente);
-
-        String msg = "Suplente " + suplente.getNome()
-                + " incluído na reserva " + reservaId + " com sucesso.";
-        return ResponseEntity.ok(msg);
-
-    } catch (IllegalArgumentException e) {
-        
-        return ResponseEntity.badRequest().body(e.getMessage());
-    } catch (IllegalStateException e) {
-        
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Erro ao incluir suplente: " + e.getMessage());
-    }
-}
-
-
-    
-    @PostMapping("/{reservaId}/editar")
-    public ResponseEntity<?> editarReserva(@PathVariable Long reservaId,
-                                           
-                                           @RequestParam(required = false) Long alunoId,
-                                           @RequestParam String inicio,
-                                           @RequestParam String fim,
-                                           @RequestParam String equipamento) {
+   
+    @PostMapping("/{reservaId}/suplente")
+    public ResponseEntity<?> incluirSuplente(@PathVariable Long reservaId,
+                                             @RequestParam String suplenteEmail) {
         try {
-            Aluno aluno = authService.getAlunoLogado();
+            Aluno titular = authService.getAlunoLogado();
 
-            LocalDateTime ni = LocalDateTime.parse(inicio);
-            LocalDateTime nf = LocalDateTime.parse(fim);
+            Aluno suplente = alunoRepository.findByEmail(suplenteEmail)
+                    .orElseThrow(() -> new IllegalArgumentException("Suplente não encontrado."));
 
-            Reserva editada = agendamentoService.editarHorario(aluno, reservaId, ni, nf, equipamento);
-            return ResponseEntity.ok(editada);
+            agendamentoService.incluirSuplente(titular, reservaId, suplente);
+
+            String msg = "Suplente " + suplente.getNome()
+                    + " incluído na reserva " + reservaId +
+                    " com sucesso. Você receberá um e-mail com mais informações.";
+
+            return ResponseEntity.ok(msg);
 
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Erro ao editar reserva: " + e.getMessage());
+                    .body("Erro ao incluir suplente: " + e.getMessage());
         }
     }
 }

@@ -9,8 +9,7 @@ import java.util.List;
 
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
-    // Conflito de horário por EQUIPAMENTO + STATUS (ex.: ATIVA)
-    // sobreposição: (inicio < fimNovo) AND (fim > inicioNovo)
+    
     boolean existsByEquipamentoAndStatusInAndInicioBeforeAndFimAfter(
             String equipamento,
             Collection<Reserva.Status> status,
@@ -18,7 +17,7 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             LocalDateTime inicioNovo
     );
 
-    // Mesmo que o de cima, mas IGNORANDO a própria reserva (para edição)
+    
     boolean existsByEquipamentoAndStatusInAndInicioBeforeAndFimAfterAndIdNot(
             String equipamento,
             Collection<Reserva.Status> status,
@@ -27,6 +26,6 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             Long idToIgnore
     );
 
-    // Listagem dos agendamentos do aluno (tela principal)
+    
     List<Reserva> findAllByTitularIdOrderByInicioDesc(Long titularId);
 }
